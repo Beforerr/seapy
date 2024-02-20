@@ -131,8 +131,8 @@ def sean(data, events, x_dimensions, cols=False, seastats=False,
     # spacing and bin sizes defined by x_dimensions
     x1_spacing, x2_spacing = 1/x_dimensions[0], 1/x_dimensions[1]
     
-    x1_bin = np.int(x_dimensions[0])
-    x2_bin = np.int(x_dimensions[1])    
+    x1_bin = np.int64(x_dimensions[0])
+    x2_bin = np.int64(x_dimensions[1])    
 
     # if a series is passed convert it to a data frame for simplicity 
     if isinstance(data, pd.Series):
