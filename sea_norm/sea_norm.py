@@ -37,7 +37,7 @@ from scipy import stats
 import gc
 
 
-def sean(data, events, x_dimensions, cols=False, seastats=False,
+def sean(data, events: list[np.ndarray], x_dimensions, cols=False, seastats=False,
               y_col=False, y_dimensions=False):
     """
     
@@ -188,9 +188,12 @@ def sean(data, events, x_dimensions, cols=False, seastats=False,
     # loop through events normalize time and collect data
     for event in tqdm(range(len(starts))):
         # get the epochs for the event
-        start = str(starts.iloc[event])
-        epoch = str(epochs.iloc[event])
-        end = str(ends.iloc[event])
+        # start = str(starts.iloc[event])
+        # epoch = str(epochs.iloc[event])
+        # end = str(ends.iloc[event])
+        start = starts[event]
+        epoch = epochs[event]
+        end = ends[event]
 
         # get phase 1 and phase 2 data
         # in seperate dataframes
