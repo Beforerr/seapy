@@ -45,7 +45,7 @@ def sean(
     seastats=False,
     y_col=False,
     y_dimensions=False,
-    return_data = False
+    return_data=False,
 ):
     """
 
@@ -190,10 +190,9 @@ def sean(
     # number of events for reference later on
     gc.collect()
 
-    # create empty data frames to store the normalized time
-    # for each phase
-    p1data = pd.DataFrame()
-    p2data = pd.DataFrame()
+    # Initialize lists to store dataframes for concatenation later
+    phase1_dfs = []
+    phase2_dfs = []
 
     # loop through events normalize time and collect data
     for event in tqdm(range(len(starts))):
@@ -202,43 +201,38 @@ def sean(
         epoch = epochs[event]
         end = ends[event]
 
-        # get phase 1 and phase 2 data
-        # in seperate dataframes
-        phase1 = se_data[start:epoch].copy()
-        phase2 = se_data[epoch:end].copy()
+        # Flag to indicate if the event should be skipped
+        skip_event = False
 
-        # normalise time axis of phase 1 for each phase from 0 to 1.
-        try:
-            # reset time for this event to 0
-            phase1["t_norm"] = phase1.index - phase1.index[0]
-        except IndexError:
-            # in case there is no data during a given event
-            print("There is no data for event " + str(event))
+        # get phase 1 and phase 2 data (slice without copying)
+        phase1 = se_data.loc[start:epoch]
+        phase2 = se_data.loc[epoch:end]
+
+        for phase in [phase1, phase2]:
+            if phase.empty:
+                print(f"There is no data for event {event}")
+                skip_event = True
+                break
+
+        # Skip the rest of the current iteration of the outer loop if flagged
+        if skip_event:
             continue
 
-        # get time in seconds only, ready to normalise
-        phase1["t_norm"] = phase1["t_norm"].dt.total_seconds()
-        # find smallest and largest values (to become 0 and 1)
-        # and normalize
-        p1min = phase1["t_norm"][0]
-        p1max = phase1["t_norm"][-1]
-        # normalise the time values from 0 to 1
-        phase1["t_norm"] = (phase1["t_norm"] - p1min) / (p1max - p1min)
+        # If execution reaches here, both phases have data and can be processed
+        for phase, storage in [(phase1, phase1_dfs), (phase2, phase2_dfs)]:
+            # Normalize the time without copying dataframes
+            t_norm = phase.index - phase.index[0]
+            t_norm = t_norm.total_seconds()
+            p_min, p_max = t_norm[0], t_norm[-1]
+            t_norm = (t_norm - p_min) / (p_max - p_min)
 
-        # normalise the time axis for phase 2 (same as above)
-        try:
-            phase2["t_norm"] = phase2.index - phase2.index[0]
-        except IndexError:
-            continue
-        phase2["t_norm"] = phase2["t_norm"].dt.total_seconds()
-        p2min = phase2["t_norm"][0]
-        p2max = phase2["t_norm"][-1]
-        phase2["t_norm"] = (phase2["t_norm"] - p2min) / (p2max - p2min)
+            # Use assign to avoid changing original 'se_data'
+            normalized_phase = phase.assign(t_norm=t_norm)
+            storage.append(normalized_phase)
 
-        # append the phase 1 and phase 2 data frames
-        # to final DataFrames which contain all the
-        p1data = pd.concat([p1data, phase1])
-        p2data = pd.concat([p2data, phase2])
+    # Concatenate all dataframes outside the loop
+    p1data = pd.concat(phase1_dfs)
+    p2data = pd.concat(phase2_dfs)
 
     # calculate the normalized SEA
     # statistics
